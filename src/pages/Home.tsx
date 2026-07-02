@@ -35,7 +35,7 @@ function useClock() {
 }
 
 function getExamCountdown() {
-  const examDate = new Date('2026-03-01');
+  const examDate = new Date('2027-03-09T09:00:00');
   const now = new Date();
   const diff = examDate.getTime() - now.getTime();
   const days = Math.max(0, Math.floor(diff / 86400000));
@@ -137,7 +137,7 @@ export default function HomePage({ navigate }: { navigate: (r: Route) => void })
               <Icons.Target size={18} className="text-[rgb(var(--accent-soft))]" />
               <h3 className="font-display font-semibold text-lg">Board Exam Countdown</h3>
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: 'Days', value: countdown.days },
                 { label: 'Hours', value: countdown.hours },

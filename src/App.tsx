@@ -1,3 +1,4 @@
+import Welcome from './pages/Welcome';
 import { useEffect, useState } from 'react';
 import { StoreProvider } from './store';
 import { useRoute } from './router';
@@ -49,13 +50,7 @@ function AppContent() {
 	credits: <Credits />,
   };
 
-  return (
-    <AppShell route={route} navigate={navigate}>
-      <div key={route} className="animate-fade-in">
-        {pages[route] || <HomePage navigate={navigate} />}
-      </div>
-    </AppShell>
-  );
+return <Welcome />;
 }
 
 export default function App() {

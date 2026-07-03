@@ -1,6 +1,6 @@
 import Welcome from './pages/Welcome';
 import { useEffect, useState } from 'react';
-import { StoreProvider } from './store';
+import { StoreProvider, useStore } from './store';
 import { useRoute } from './router';
 import AppShell from './components/AppShell';
 import HomePage from './pages/Home';
@@ -18,6 +18,8 @@ import NotesHub from './pages/NotesHub';
 import ResourceHub from './pages/ResourceHub';
 import Settings from './pages/Settings';
 import Credits from './pages/Credits';
+import { supabase } from "./lib/supabase";
+import { loadUserSettings } from "./lib/cloud";
 
 function LoadingScreen() {
   return (
@@ -31,7 +33,37 @@ function LoadingScreen() {
 
 function AppContent() {
   const [route, navigate] = useRoute();
+const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+useEffect(() => {
+  async function checkSession() {
+    const { data } = await supabase.auth.getSession();
 
+    setLoggedIn(!!data.session);
+
+    if (data.session) {
+      const settings = await loadUserSettings();
+      console.log("Cloud Settings:", settings);
+    }
+  }
+
+  checkSession();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setLoggedIn(!!session);
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
+
+  if (loggedIn === null) {
+  return (
+    <div className="fixed inset-0 bg-base-0 flex items-center justify-center">
+      <div className="text-white text-lg">Checking session...</div>
+    </div>
+  );
+}
   const pages: Record<string, React.ReactNode> = {
     home: <HomePage navigate={navigate} />,
     formulas: <FormulaVault />,
@@ -50,7 +82,15 @@ function AppContent() {
 	credits: <Credits />,
   };
 
-return <Welcome />;
+if (!loggedIn) {
+  return <Welcome />;
+}
+
+return (
+  <AppShell route={route} navigate={navigate}>
+    {pages[route] ?? <HomePage navigate={navigate} />}
+  </AppShell>
+);
 }
 
 export default function App() {

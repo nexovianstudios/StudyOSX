@@ -9,10 +9,11 @@ export async function signUp(
     email,
     password,
     options: {
-      data: {
-        name,
-      },
-    },
+  emailRedirectTo: window.location.origin,
+  data: {
+    name,
+  },
+},
   });
 }
 

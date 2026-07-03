@@ -142,6 +142,7 @@ interface StoreContextType {
   recordSession: (session: Omit<StudySession, 'id' | 'date'>) => void;
   updatePreferences: (p: Partial<Preferences>) => void;
   resetData: () => void;
+  setName: (name: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -246,10 +247,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
     setStateRaw(DEFAULT_STATE);
   }, []);
+  const setName = useCallback((name: string) => {
+  setStateRaw((prev) => ({
+    ...prev,
+    name,
+  }));
+}, []);
 
   return (
     <StoreContext.Provider
-      value={{ state, setState, addXp, addCoins, unlockAchievement, toggleFavorite, toggleBookmark, recordSession, updatePreferences, resetData }}
+      value={{
+  state,
+  setState,
+  addXp,
+  addCoins,
+  unlockAchievement,
+  toggleFavorite,
+  toggleBookmark,
+  recordSession,
+  updatePreferences,
+  resetData,
+  setName,
+}}
     >
       {children}
     </StoreContext.Provider>

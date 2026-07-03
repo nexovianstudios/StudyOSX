@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { signOut } from '../lib/auth';
 import * as Icons from 'lucide-react';
 import { useStore, XP_PER_LEVEL } from '../store';
 import { NAV_ITEMS, type Route } from '../router';
@@ -68,6 +69,14 @@ export default function AppShell({ route, navigate, children }: { route: Route; 
           <span className="text-secondary-c flex items-center gap-1"><Icons.Coins size={12} className="text-yellow-400" />{state.coins}</span>
           <span className="text-secondary-c flex items-center gap-1"><Icons.Zap size={12} className="text-[rgb(var(--accent-soft))]" />{state.xp} XP</span>
         </div>
+		<button
+  onClick={async () => {
+    await signOut();
+  }}
+  className="w-full mt-4 rounded-xl border border-red-500/30 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-all"
+>
+  Logout
+</button>
       </div>
     </div>
   );

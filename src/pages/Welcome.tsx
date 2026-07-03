@@ -1,154 +1,161 @@
-	import { useRef, useState } from "react";
-	import AnimatedBackground from "../components/AnimatedBackground";
-	import { signIn, signUp } from "../lib/auth";
-	export default function Welcome() {
-	const previewRef = useRef<HTMLDivElement>(null);
-	const [isLogin, setIsLogin] = useState(true);
+		import { useRef, useState } from "react";
+		import AnimatedBackground from "../components/AnimatedBackground";
+		import { signIn, signUp } from "../lib/auth";
+		export default function Welcome() {
+		const previewRef = useRef<HTMLDivElement>(null);
+		const [isLogin, setIsLogin] = useState(true);
 
-const [name, setName] = useState("");
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
 
-const handleAuth = async () => {
-  if (isLogin) {
-    const { error } = await signIn(email, password);
+	const handleAuth = async () => {
+	  if (isLogin) {
+		const { error } = await signIn(email, password);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+		if (error) {
+		  alert(error.message);
+		  return;
+		}
 
-    alert("Login successful!");
-  } else {
-    const { error } = await signUp(name, email, password);
+		setEmail("");
+setPassword("");
+	  } else {
+		const { error } = await signUp(name, email, password);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+		if (error) {
+		  alert(error.message);
+		  return;
+		}
 
-    alert("Account created! Check your email if verification is enabled.");
-  }
-};
-	  return (
-  <div
-  className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
-  onMouseMove={(e) => {
-    if (!previewRef.current) return;
+		alert("Account created! Please verify your email before logging in.");
 
-    const rotateY = ((e.clientX / window.innerWidth) - 0.5) * 4;
-    const rotateX = (0.5 - (e.clientY / window.innerHeight)) * 4;
+setName("");
+setEmail("");
+setPassword("");
 
-    previewRef.current.style.transform =
-      `perspective(1400px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-  }}
-  onMouseLeave={() => {
-    if (!previewRef.current) return;
+setIsLogin(true);
+	  }
+	};
+		  return (
+	  <div
+	  className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
+	  onMouseMove={(e) => {
+		if (!previewRef.current) return;
 
-    previewRef.current.style.transform =
-      "perspective(1400px) rotateX(0deg) rotateY(0deg)";
-  }}
->
+		const rotateY = ((e.clientX / window.innerWidth) - 0.5) * 4;
+		const rotateX = (0.5 - (e.clientY / window.innerHeight)) * 4;
 
-    <AnimatedBackground />
+		previewRef.current.style.transform =
+		  `perspective(1400px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+	  }}
+	  onMouseLeave={() => {
+		if (!previewRef.current) return;
 
-    {/* Top Right Branding */}
+		previewRef.current.style.transform =
+		  "perspective(1400px) rotateX(0deg) rotateY(0deg)";
+	  }}
+	>
 
-      {/* Top Right Branding */}
-      <div className="absolute top-8 right-10 text-right z-10">
-        <h1 className="font-display text-xl font-bold gradient-text">
-          StudyOS X
-        </h1>
+		<AnimatedBackground />
 
-        <p className="font-display text-xs text-white/80 mt-1">
-          Your Ultimate Study Workspace
-        </p>
+		{/* Top Right Branding */}
 
-        <p className="font-display text-[11px] text-secondary-c leading-tight">
-          Everything you need to prepare for
-          <br />
-          CBSE Class 10 — in one place.
-        </p>
-      </div>
+		  {/* Top Right Branding */}
+		  <div className="absolute top-8 right-10 text-right z-10">
+			<h1 className="font-display text-xl font-bold gradient-text">
+			  StudyOS X
+			</h1>
 
-      {/* Bottom Center Text */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 font-display text-[11px] text-white/70 tracking-wide whitespace-nowrap">
-        📚 Study Smarter
-        <span className="mx-3 text-cyan-400">|</span>
-        🎯 Stay Focused
-        <span className="mx-3 text-cyan-400">|</span>
-        🚀 Score Higher
-      </div>
+			<p className="font-display text-xs text-white/80 mt-1">
+			  Your Ultimate Study Workspace
+			</p>
 
-      {/* Main Content */}
-		<div className="max-w-[1800px] w-full grid lg:grid-cols-[2.2fr_0.8fr] gap-14 items-center">
+			<p className="font-display text-[11px] text-secondary-c leading-tight">
+			  Everything you need to prepare for
+			  <br />
+			  CBSE Class 10 — in one place.
+			</p>
+		  </div>
 
-        {/* Dashboard Preview */}
-        <div
-  ref={previewRef}
-  className="glass rounded-3xl p-5 transition-transform duration-150 ease-out will-change-transform"
->
-          <img
-  src="/dashboard-preview.png"
-  alt="StudyOS X Dashboard"
-  className="w-full rounded-2xl shadow-2xl pointer-events-none select-none"
-/>
-        </div>
+		  {/* Bottom Center Text */}
+		  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 font-display text-[11px] text-white/70 tracking-wide whitespace-nowrap">
+			📚 Study Smarter
+			<span className="mx-3 text-cyan-400">|</span>
+			🎯 Stay Focused
+			<span className="mx-3 text-cyan-400">|</span>
+			🚀 Score Higher
+		  </div>
 
-        {/* Login Card */}
-        <div className="glass rounded-3xl p-10 max-w-sm mx-auto w-full">
+		  {/* Main Content */}
+			<div className="max-w-[1800px] w-full grid lg:grid-cols-[2.2fr_0.8fr] gap-14 items-center">
 
-          <h2 className="font-display text-3xl font-bold mb-8">
-            Welcome Back
-          </h2>
+			{/* Dashboard Preview */}
+			<div
+	  ref={previewRef}
+	  className="glass rounded-3xl p-5 transition-transform duration-150 ease-out will-change-transform"
+	>
+			  <img
+	  src="/dashboard-preview.png"
+	  alt="StudyOS X Dashboard"
+	  className="w-full rounded-2xl shadow-2xl pointer-events-none select-none"
+	/>
+			</div>
 
-         {!isLogin && (
-  <input
-    type="text"
-    placeholder="Full Name"
-    value={name}
-    onChange={(e) => setName(e.target.value)}
-    className="w-full mb-4 p-4 rounded-xl bg-base-2 border border-white/10"
-  />
-)}
+			{/* Login Card */}
+			<div className="glass rounded-3xl p-10 max-w-sm mx-auto w-full">
 
-		 <input
-  type="email"
-  placeholder="Email"
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-  className="w-full mb-4 p-4 rounded-xl bg-base-2 border border-white/10"
-/>
+			  <h2 className="font-display text-3xl font-bold mb-8">
+				Welcome Back
+			  </h2>
 
-          <input
-  type="password"
-  placeholder="Password"
-  value={password}
-  onChange={(e) => setPassword(e.target.value)}
-  className="w-full mb-6 p-4 rounded-xl bg-base-2 border border-white/10"
-/>
+			 {!isLogin && (
+	  <input
+		type="text"
+		placeholder="Full Name"
+		value={name}
+		onChange={(e) => setName(e.target.value)}
+		className="w-full mb-4 p-4 rounded-xl bg-base-2 border border-white/10"
+	  />
+	)}
 
-          <button
-  onClick={handleAuth}
-  className="w-full p-4 rounded-xl bg-white text-black font-semibold hover:scale-[1.02] transition-all duration-200"
->
-  {isLogin ? "Login" : "Create Account"}
-</button>
-<p className="mt-6 text-center text-sm text-white/70">
-  {isLogin ? "Don't have an account?" : "Already have an account?"}
+			 <input
+	  type="email"
+	  placeholder="Email"
+	  value={email}
+	  onChange={(e) => setEmail(e.target.value)}
+	  className="w-full mb-4 p-4 rounded-xl bg-base-2 border border-white/10"
+	/>
 
-  <button
-    onClick={() => setIsLogin(!isLogin)}
-    className="ml-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
-  >
-    {isLogin ? "Create Account" : "Login"}
-  </button>
-</p>
+			  <input
+	  type="password"
+	  placeholder="Password"
+	  value={password}
+	  onChange={(e) => setPassword(e.target.value)}
+	  className="w-full mb-6 p-4 rounded-xl bg-base-2 border border-white/10"
+	/>
 
-        </div>
+			  <button
+	  onClick={handleAuth}
+	  className="w-full p-4 rounded-xl bg-white text-black font-semibold hover:scale-[1.02] transition-all duration-200"
+	>
+	  {isLogin ? "Login" : "Create Account"}
+	</button>
+	<p className="mt-6 text-center text-sm text-white/70">
+	  {isLogin ? "Don't have an account?" : "Already have an account?"}
 
-      </div>
+	  <button
+		onClick={() => setIsLogin(!isLogin)}
+		className="ml-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+	  >
+		{isLogin ? "Create Account" : "Login"}
+	  </button>
+	</p>
 
-    </div>
-  );
-}
+			</div>
+
+		  </div>
+
+		</div>
+	  );
+	}

@@ -1,7 +1,35 @@
-	import { useRef } from "react";
+	import { useRef, useState } from "react";
 	import AnimatedBackground from "../components/AnimatedBackground";
+	import { signIn, signUp } from "../lib/auth";
 	export default function Welcome() {
 	const previewRef = useRef<HTMLDivElement>(null);
+	const [isLogin, setIsLogin] = useState(true);
+
+const [name, setName] = useState("");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+
+const handleAuth = async () => {
+  if (isLogin) {
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Login successful!");
+  } else {
+    const { error } = await signUp(name, email, password);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Account created! Check your email if verification is enabled.");
+  }
+};
 	  return (
   <div
   className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
@@ -74,21 +102,48 @@
             Welcome Back
           </h2>
 
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full mb-4 p-4 rounded-xl bg-base-2 border border-white/10"
-          />
+         {!isLogin && (
+  <input
+    type="text"
+    placeholder="Full Name"
+    value={name}
+    onChange={(e) => setName(e.target.value)}
+    className="w-full mb-4 p-4 rounded-xl bg-base-2 border border-white/10"
+  />
+)}
+
+		 <input
+  type="email"
+  placeholder="Email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  className="w-full mb-4 p-4 rounded-xl bg-base-2 border border-white/10"
+/>
 
           <input
-            type="password"
-            placeholder="Password"
-            className="w-full mb-6 p-4 rounded-xl bg-base-2 border border-white/10"
-          />
+  type="password"
+  placeholder="Password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  className="w-full mb-6 p-4 rounded-xl bg-base-2 border border-white/10"
+/>
 
-          <button className="w-full p-4 rounded-xl bg-white text-black font-semibold">
-            Login
-          </button>
+          <button
+  onClick={handleAuth}
+  className="w-full p-4 rounded-xl bg-white text-black font-semibold hover:scale-[1.02] transition-all duration-200"
+>
+  {isLogin ? "Login" : "Create Account"}
+</button>
+<p className="mt-6 text-center text-sm text-white/70">
+  {isLogin ? "Don't have an account?" : "Already have an account?"}
+
+  <button
+    onClick={() => setIsLogin(!isLogin)}
+    className="ml-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+  >
+    {isLogin ? "Create Account" : "Login"}
+  </button>
+</p>
 
         </div>
 

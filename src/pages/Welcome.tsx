@@ -1,30 +1,76 @@
-export default function Welcome() {
-  return (
-    <div className="min-h-screen bg-base-0 flex items-center justify-center px-6">
-      <div className="max-w-7xl w-full grid lg:grid-cols-2 gap-12 items-center">
+	import { useRef } from "react";
+	import AnimatedBackground from "../components/AnimatedBackground";
+	export default function Welcome() {
+	const previewRef = useRef<HTMLDivElement>(null);
+	  return (
+  <div
+  className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
+  onMouseMove={(e) => {
+    if (!previewRef.current) return;
 
-        {/* LEFT SIDE */}
-        <div>
-          <h1 className="text-6xl font-bold gradient-text mb-4">
-            StudyOS X
-          </h1>
+    const rotateY = ((e.clientX / window.innerWidth) - 0.5) * 4;
+    const rotateX = (0.5 - (e.clientY / window.innerHeight)) * 4;
 
-          <p className="text-xl text-secondary-c mb-8">
-            AI Powered Learning Platform
-          </p>
+    previewRef.current.style.transform =
+      `perspective(1400px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  }}
+  onMouseLeave={() => {
+    if (!previewRef.current) return;
 
-          <div className="glass rounded-3xl p-4">
-            <img
-              src="/dashboard-preview.png"
-              alt="StudyOS X Dashboard"
-              className="w-full rounded-2xl shadow-2xl"
-            />
-          </div>
+    previewRef.current.style.transform =
+      "perspective(1400px) rotateX(0deg) rotateY(0deg)";
+  }}
+>
+
+    <AnimatedBackground />
+
+    {/* Top Right Branding */}
+
+      {/* Top Right Branding */}
+      <div className="absolute top-8 right-10 text-right z-10">
+        <h1 className="font-display text-xl font-bold gradient-text">
+          StudyOS X
+        </h1>
+
+        <p className="font-display text-xs text-white/80 mt-1">
+          Your Ultimate Study Workspace
+        </p>
+
+        <p className="font-display text-[11px] text-secondary-c leading-tight">
+          Everything you need to prepare for
+          <br />
+          CBSE Class 10 — in one place.
+        </p>
+      </div>
+
+      {/* Bottom Center Text */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 font-display text-[11px] text-white/70 tracking-wide whitespace-nowrap">
+        📚 Study Smarter
+        <span className="mx-3 text-cyan-400">|</span>
+        🎯 Stay Focused
+        <span className="mx-3 text-cyan-400">|</span>
+        🚀 Score Higher
+      </div>
+
+      {/* Main Content */}
+		<div className="max-w-[1800px] w-full grid lg:grid-cols-[2.2fr_0.8fr] gap-14 items-center">
+
+        {/* Dashboard Preview */}
+        <div
+  ref={previewRef}
+  className="glass rounded-3xl p-5 transition-transform duration-150 ease-out will-change-transform"
+>
+          <img
+  src="/dashboard-preview.png"
+  alt="StudyOS X Dashboard"
+  className="w-full rounded-2xl shadow-2xl pointer-events-none select-none"
+/>
         </div>
 
-        {/* RIGHT SIDE */}
-        <div className="glass rounded-3xl p-10 max-w-md mx-auto w-full">
-          <h2 className="text-3xl font-bold mb-8">
+        {/* Login Card */}
+        <div className="glass rounded-3xl p-10 max-w-sm mx-auto w-full">
+
+          <h2 className="font-display text-3xl font-bold mb-8">
             Welcome Back
           </h2>
 
@@ -43,9 +89,11 @@ export default function Welcome() {
           <button className="w-full p-4 rounded-xl bg-white text-black font-semibold">
             Login
           </button>
+
         </div>
 
       </div>
+
     </div>
   );
 }

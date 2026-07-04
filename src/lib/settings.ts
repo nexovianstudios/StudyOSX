@@ -1,30 +1,38 @@
-import { supabase } from "./supabase";
+import { auth, db } from "./firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export async function getSettings() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = auth.currentUser;
 
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("settings")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
+  const docRef = doc(db, "settings", user.uid);
+  const snap = await getDoc(docRef);
 
-  return { data, error };
+  if (!snap.exists()) {
+    return { data: null, error: null };
+  }
+
+  return {
+    data: snap.data(),
+    error: null,
+  };
 }
 
 export async function saveSettings(settings: Record<string, unknown>) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = auth.currentUser;
 
   if (!user) return;
 
-  return await supabase.from("settings").upsert({
-    user_id: user.id,
-    ...settings,
-  });
+  const docRef = doc(db, "settings", user.uid);
+
+  await setDoc(
+    docRef,
+    {
+      ...settings,
+    },
+    { merge: true }
+  );
+
+  return { error: null };
 }

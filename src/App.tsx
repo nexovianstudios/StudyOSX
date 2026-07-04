@@ -18,7 +18,8 @@ import NotesHub from './pages/NotesHub';
 import ResourceHub from './pages/ResourceHub';
 import Settings from './pages/Settings';
 import Credits from './pages/Credits';
-import { supabase } from "./lib/supabase";
+import { auth } from "./lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { loadUserSettings } from "./lib/cloud";
 
 function LoadingScreen() {
@@ -35,26 +36,16 @@ function AppContent() {
   const [route, navigate] = useRoute();
 const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
 useEffect(() => {
-  async function checkSession() {
-    const { data } = await supabase.auth.getSession();
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    setLoggedIn(!!user);
 
-    setLoggedIn(!!data.session);
-
-    if (data.session) {
+    if (user) {
       const settings = await loadUserSettings();
       console.log("Cloud Settings:", settings);
     }
-  }
-
-  checkSession();
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    setLoggedIn(!!session);
   });
 
-  return () => subscription.unsubscribe();
+  return () => unsubscribe();
 }, []);
 
   if (loggedIn === null) {

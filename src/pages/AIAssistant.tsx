@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Icons from 'lucide-react';
 import { useStore } from '../store';
 import { FORMULAS } from '../data/formulas';
 import { CHEAT_SHEETS } from '../data/cheatsheets';
 import { GlassCard, SectionTitle, NeonButton, EmptyState } from '../components/ui';
+import { askGroq } from '../lib/groq';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type Tool = 'doubt' | 'quiz' | 'explain' | 'flashcards' | 'summarize' | 'plan';
 
@@ -82,38 +85,78 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Msg[]>([]);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+const inputRef = useRef<HTMLTextAreaElement>(null);
+useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({
+    behavior: "smooth",
+  });
+}, [messages]);
 
-  const run = () => {
-    if (!input.trim()) return;
-    const userMsg: Msg = { role: 'user', content: input };
-    let aiMsg: Msg = { role: 'ai', content: '' };
+const run = async () => {
+  if (!input.trim()) return;
 
-    if (tool === 'doubt') {
-      aiMsg = { role: 'ai', content: findRelevant(input) };
-    } else if (tool === 'quiz') {
-      const quiz = generateQuiz(input);
-      aiMsg = { role: 'ai', content: 'Here\'s your quiz. Try to answer each, then reveal:', data: quiz };
-    } else if (tool === 'explain') {
-      aiMsg = { role: 'ai', content: findRelevant(input) };
-    } else if (tool === 'flashcards') {
-      const cards = generateFlashcards(input);
-      aiMsg = { role: 'ai', content: `Generated ${cards.length} flashcards:`, data: cards };
-    } else if (tool === 'summarize') {
-      aiMsg = { role: 'ai', content: summarizeChapter(input) };
-    } else if (tool === 'plan') {
-      const days = parseInt(input) || 7;
-      aiMsg = { role: 'ai', content: `Here\'s your ${days}-day revision plan:`, data: generatePlan(days) };
+  const userMsg: Msg = { role: "user", content: input };
+  setMessages((m) => [...m, userMsg]);
+
+  const currentInput = input;
+  setInput("");
+
+  try {
+    switch (tool) {
+      case "quiz": {
+        const data = generateQuiz(currentInput);
+        setMessages((m) => [
+          ...m,
+          { role: "ai", content: `Here's a quiz on **${currentInput}**:`, data },
+        ]);
+        break;
+      }
+      case "flashcards": {
+        const data = generateFlashcards(currentInput);
+        setMessages((m) => [
+          ...m,
+          { role: "ai", content: `Flashcards for **${currentInput}**:`, data },
+        ]);
+        break;
+      }
+      case "summarize": {
+        const content = summarizeChapter(currentInput);
+        setMessages((m) => [...m, { role: "ai", content }]);
+        break;
+      }
+      case "plan": {
+        const days = parseInt(currentInput, 10) || 7;
+        const data = generatePlan(days);
+        setMessages((m) => [
+          ...m,
+          { role: "ai", content: `Here's your ${days}-day revision plan:`, data },
+        ]);
+        break;
+      }
+      case "explain":
+      case "doubt":
+      default: {
+        const response = await askGroq(currentInput);
+        setMessages((m) => [...m, { role: "ai", content: response }]);
+        break;
+      }
     }
 
-    setMessages((m) => [...m, userMsg, aiMsg]);
-    setInput('');
     addXp(5);
-  };
+  } catch (err) {
+    setMessages((m) => [
+      ...m,
+      { role: "ai", content: "⚠️ Failed to contact Groq. Please try again." },
+    ]);
+    console.error(err);
+  }
+};
 
   const currentTool = TOOLS.find((t) => t.id === tool)!;
 
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-120px)] flex flex-col gap-6">
       <SectionTitle title="AI Assistant" subtitle="Your personal study companion" icon={<Icons.Bot size={24} />} />
 
       <GlassCard className="p-4 flex items-center gap-3">
@@ -137,62 +180,159 @@ export default function AIAssistant() {
         })}
       </div>
 
-      {/* Input */}
-      <GlassCard className="p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && run()}
-            placeholder={tool === 'plan' ? 'Number of days (e.g. 7)' : tool === 'summarize' ? 'Chapter name (e.g. Electricity)' : 'Ask about any Class 10 topic...'}
-            className="flex-1 bg-base-2 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-primary-c placeholder:text-muted-c focus:outline-none focus:border-[rgba(var(--accent),0.5)]"
-          />
-          <NeonButton onClick={run} className="!px-6"><Icons.Send size={16} /> Generate</NeonButton>
-        </div>
-      </GlassCard>
+      
+{/* Messages */}
+<div className="flex flex-col flex-1 min-h-0">
 
-      {/* Messages */}
-      {messages.length === 0 ? (
-        <EmptyState icon={<Icons.Bot size={48} />} title={`AI ${currentTool.name}`} subtitle="Type your query above and hit Generate" />
-      ) : (
-        <div className="space-y-4">
-          {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`glass rounded-2xl p-4 max-w-2xl ${m.role === 'user' ? 'neon-border' : ''}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  {m.role === 'user' ? <Icons.User size={14} className="text-[rgb(var(--accent-soft))]" /> : <Icons.Bot size={14} className="text-[rgb(var(--accent-soft))]" />}
-                  <span className="text-xs text-muted-c uppercase tracking-wider">{m.role === 'user' ? 'You' : 'AI'}</span>
-                </div>
-                <div className="text-sm text-secondary-c whitespace-pre-wrap leading-relaxed">{m.content}</div>
-                {Array.isArray(m.data) && m.data.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {tool === 'quiz' && (m.data as { q: string; a: string }[]).map((item, j) => (
+  <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-2">
+
+    {messages.length === 0 ? (
+      <EmptyState
+        icon={<Icons.Bot size={48} />}
+        title={`AI ${currentTool.name}`}
+        subtitle="Type your query above and hit Generate"
+      />
+    ) : (
+      <>
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={`flex ${
+              m.role === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`glass rounded-2xl p-4 max-w-3xl w-fit ${
+                m.role === "user" ? "neon-border" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {m.role === "user" ? (
+                  <Icons.User
+                    size={14}
+                    className="text-[rgb(var(--accent-soft))]"
+                  />
+                ) : (
+                  <Icons.Bot
+                    size={14}
+                    className="text-[rgb(var(--accent-soft))]"
+                  />
+                )}
+
+                <span className="text-xs text-muted-c uppercase tracking-wider">
+                  {m.role === "user" ? "You" : "AI"}
+                </span>
+              </div>
+
+              <div className="text-sm text-secondary-c leading-relaxed prose prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {m.content}
+                </ReactMarkdown>
+              </div>
+
+              {Array.isArray(m.data) && m.data.length > 0 && (
+                <div className="mt-3 space-y-2">
+
+                  {tool === "quiz" &&
+                    (m.data as { q: string; a: string }[]).map((item, j) => (
                       <div key={j} className="glass rounded-lg p-3">
-                        <div className="text-sm font-medium text-primary-c">{j + 1}. {item.q}</div>
-                        <button onClick={() => setQuizAnswers((a) => ({ ...a, [i * 100 + j]: item.a }))} className="text-xs neon-btn rounded px-2 py-1 mt-2">
-                          {quizAnswers[i * 100 + j] ? `Answer: ${quizAnswers[i * 100 + j]}` : 'Reveal answer'}
+                        <div className="text-sm font-medium text-primary-c">
+                          {j + 1}. {item.q}
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            setQuizAnswers((a) => ({
+                              ...a,
+                              [i * 100 + j]: item.a,
+                            }))
+                          }
+                          className="text-xs neon-btn rounded px-2 py-1 mt-2"
+                        >
+                          {quizAnswers[i * 100 + j]
+                            ? `Answer: ${quizAnswers[i * 100 + j]}`
+                            : "Reveal answer"}
                         </button>
                       </div>
                     ))}
-                    {tool === 'flashcards' && (m.data as { front: string; back: string }[]).map((card, j) => (
-                      <div key={j} className="glass rounded-lg p-3 flex justify-between items-center">
-                        <span className="text-sm text-primary-c">{card.front}</span>
-                        <span className="text-xs font-mono text-[rgb(var(--accent-soft))]">{card.back}</span>
+
+                  {tool === "flashcards" &&
+                    (m.data as { front: string; back: string }[]).map(
+                      (card, j) => (
+                        <div
+                          key={j}
+                          className="glass rounded-lg p-3 flex justify-between items-center"
+                        >
+                          <span className="text-sm text-primary-c">
+                            {card.front}
+                          </span>
+
+                          <span className="text-xs font-mono text-[rgb(var(--accent-soft))]">
+                            {card.back}
+                          </span>
+                        </div>
+                      )
+                    )}
+
+                  {tool === "plan" &&
+                    (m.data as {
+                      day: number;
+                      subject: string;
+                      task: string;
+                    }[]).map((p, j) => (
+                      <div
+                        key={j}
+                        className="glass rounded-lg p-3 flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg neon-border flex items-center justify-center text-xs font-bold text-[rgb(var(--accent-soft))]">
+                          {p.day}
+                        </div>
+
+                        <div className="flex-1">
+                          <span className="text-sm text-primary-c font-medium">
+                            {p.subject}
+                          </span>
+
+                          <span className="text-xs text-secondary-c ml-2">
+                            · {p.task}
+                          </span>
+                        </div>
                       </div>
                     ))}
-                    {tool === 'plan' && (m.data as { day: number; subject: string; task: string }[]).map((p, j) => (
-                      <div key={j} className="glass rounded-lg p-3 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg neon-border flex items-center justify-center text-xs font-bold text-[rgb(var(--accent-soft))]">{p.day}</div>
-                        <div className="flex-1"><span className="text-sm text-primary-c font-medium">{p.subject}</span><span className="text-xs text-secondary-c ml-2">· {p.task}</span></div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </>
+    )}
+
+    <div ref={messagesEndRef} />
+  </div>
+ {/* Input */}
+  <GlassCard className="p-4 mt-4 shrink-0">
+    <div className="flex flex-col sm:flex-row gap-3">
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && run()}
+        placeholder={
+          tool === "plan"
+            ? "Number of days (e.g. 7)"
+            : tool === "summarize"
+            ? "Chapter name (e.g. Electricity)"
+            : "Ask about any Class 10 topic..."
+        }
+        className="flex-1 bg-base-2 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-primary-c placeholder:text-muted-c focus:outline-none focus:border-[rgba(var(--accent),0.5)]"
+      />
+
+      <NeonButton onClick={run} className="!px-6">
+        <Icons.Send size={16} /> Generate
+      </NeonButton>
+    </div>
+       </GlassCard>
+    </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ const Credits = () => {
       <div className="grid gap-6">
         <div className="glass-card p-6 rounded-2xl">
           <h2 className="text-2xl font-bold mb-3">
-            👑 Founder & Lead Developer
+            👑 Co-Founder & Lead Developer
           </h2>
           <p className="text-xl font-semibold">
             Shayan Faaz K
@@ -24,18 +24,21 @@ const Credits = () => {
             <li>• XP and Streak System Concepts</li>
             <li>• User Account System Ideas</li>
             <li>• Feature Planning and Development</li>
+			<li>• Created Ai </li>
           </ul>
         </div>
 
         <div className="glass-card p-6 rounded-2xl">
           <h2 className="text-2xl font-bold mb-3">
-            💡 Original Inspiration
+            🌟 Founder & Original Inspiration
           </h2>
           <p className="text-xl font-semibold">
             Sidharth S Menon
           </p>
           <p className="mt-3 text-gray-300">
-            Original Study Planner Idea and Inspiration
+            <li>Original Study Planner Idea and Inspiration</li>
+            <li>co-Developer</li>
+			<li>created exhibition meterials</li>
           </p>
         </div>
 

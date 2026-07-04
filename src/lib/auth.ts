@@ -1,36 +1,45 @@
-import { supabase } from "./supabase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  updateProfile,
+} from "firebase/auth";
+
+import { auth } from "./firebase";
 
 export async function signUp(
   name: string,
   email: string,
   password: string
 ) {
-  return await supabase.auth.signUp({
+  const userCredential = await createUserWithEmailAndPassword(
+    auth,
     email,
-    password,
-    options: {
-  emailRedirectTo: window.location.origin,
-  data: {
-    name,
-  },
-},
+    password
+  );
+
+  await updateProfile(userCredential.user, {
+    displayName: name,
   });
+
+  return userCredential;
 }
 
 export async function signIn(
   email: string,
   password: string
 ) {
-  return await supabase.auth.signInWithPassword({
+  return await signInWithEmailAndPassword(
+    auth,
     email,
-    password,
-  });
+    password
+  );
 }
 
 export async function signOut() {
-  return await supabase.auth.signOut();
+  return await firebaseSignOut(auth);
 }
 
 export async function getCurrentUser() {
-  return await supabase.auth.getUser();
+  return auth.currentUser;
 }

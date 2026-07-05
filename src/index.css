@@ -4,6 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
+.osx-calendar .rdp-root {
+  --rdp-accent-color: transparent;
+  --rdp-day_button-width: 100%;
+  --rdp-day_button-height: 100%;
+  margin: 0;
+  width: 100%;
+}
+.osx-calendar .rdp-month_grid {
+  border: none;
+}
+
+.osx-calendar .rdp-week {
+  margin-bottom: 8px;
+}
+
 :root {
   --accent: 0 212 255;
   --accent-soft: 34 245 255;

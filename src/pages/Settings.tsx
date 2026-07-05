@@ -156,7 +156,7 @@ export default function Settings() {
                 className="neon-btn px-5 py-2 rounded-xl"
                 onClick={async () => {
                   try {
-                    await signUp(email, password, state.name);
+                    await signUp(state.name, email, password);
                     setEmail('');
                     setPassword('');
                     alert('Account created successfully!');

@@ -1,3 +1,7 @@
+import {
+  loadUserProfile,
+  saveUserProfile,
+} from "./lib/cloud";
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 
 export type Theme = 'brabus-black' | 'cyber-blue' | 'matrix-green' | 'midnight-purple' | 'arctic-white';
@@ -131,7 +135,7 @@ function levelFromXp(xp: number) {
   return Math.floor(xp / XP_PER_LEVEL) + 1;
 }
 
-interface StoreContextType {
+export interface StoreContextType {
   state: UserState;
   setState: (updater: (s: UserState) => UserState) => void;
   addXp: (amount: number) => void;
@@ -143,21 +147,30 @@ interface StoreContextType {
   updatePreferences: (p: Partial<Preferences>) => void;
   resetData: () => void;
   setName: (name: string) => void;
+  loadCloudProfile: (profile: Partial<UserState>) => void;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setStateRaw] = useState<UserState>(loadState);
+  const [cloudReady, setCloudReady] = useState(false);
+  
 
-  useEffect(() => {
+useEffect(() => {
+  if (!cloudReady) return;
+
+  async function sync() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // storage full or unavailable
+      await saveUserProfile(state);
+    } catch (err) {
+      console.error("Cloud sync failed:", err);
     }
-  }, [state]);
+  }
 
+  sync();
+}, [state, cloudReady]);
   // Apply theme to document
   useEffect(() => {
     const theme = state.preferences.theme;
@@ -240,23 +253,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updatePreferences = useCallback((p: Partial<Preferences>) => {
-    setStateRaw((prev) => ({ ...prev, preferences: { ...prev.preferences, ...p } }));
-  }, []);
+  setStateRaw((prev) => ({
+    ...prev,
+    preferences: {
+      ...prev.preferences,
+      ...p,
+    },
+  }));
+}, []);
 
   const resetData = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setStateRaw(DEFAULT_STATE);
   }, []);
-  const setName = useCallback((name: string) => {
+const setName = useCallback((name: string) => {
   setStateRaw((prev) => ({
     ...prev,
     name,
   }));
 }, []);
 
-  return (
-    <StoreContext.Provider
-      value={{
+const loadCloudProfile = useCallback((profile: Partial<UserState>) => {
+  setStateRaw((prev) => ({
+    ...prev,
+    ...profile,
+    preferences: {
+      ...prev.preferences,
+      ...(profile.preferences ?? {}),
+    },
+  }));
+
+  setCloudReady(true);
+}, []);
+
+return (
+  <StoreContext.Provider
+   value={{
   state,
   setState,
   addXp,
@@ -268,8 +300,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   updatePreferences,
   resetData,
   setName,
+  loadCloudProfile,
 }}
-    >
+  >
       {children}
     </StoreContext.Provider>
   );

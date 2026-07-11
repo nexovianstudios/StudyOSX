@@ -31,7 +31,9 @@ export default function Welcome() {
         return;
       }
 
-      alert("Account created! Please verify your email before logging in.");
+      alert(
+  "✅ Account created!\n\nA verification email has been sent.\n\n📧 Please check your Inbox and Spam/Junk folder before logging in."
+);
 
       setName("");
       setEmail("");

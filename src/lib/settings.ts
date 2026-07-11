@@ -1,6 +1,36 @@
+import type { UserState } from "../store";
 import { auth, db } from "./firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
+const DEFAULT_PROFILE: UserState = {
+  name: "Student",
+  xp: 0,
+  coins: 0,
+  level: 1,
+  streak: 0,
+  lastStudyDate: null,
+  focusScore: 0,
+  achievements: [],
+  favorites: [],
+  bookmarks: [],
+  notes: [],
+  goals: [],
+  sessions: [],
+  heatmap: {},
+  subjectProgress: {},
+  dailyGoals: [],
+  events: [],
+  preferences: {
+    theme: "brabus-black",
+    accent: "#00d4ff",
+    effectMode: "particle",
+    font: "Inter",
+    pomodoroWork: 25,
+    pomodoroBreak: 5,
+    notifications: true,
+    soundEnabled: true,
+  },
+};
 export async function getSettings() {
   const user = auth.currentUser;
 
@@ -10,12 +40,15 @@ export async function getSettings() {
   const snap = await getDoc(docRef);
 
   if (!snap.exists()) {
-    return {
-      data: null,
-      error: null,
-    };
-  }
+  console.log("🆕 Creating new Firestore profile...");
 
+  await setDoc(docRef, DEFAULT_PROFILE);
+
+  return {
+    data: DEFAULT_PROFILE,
+    error: null,
+  };
+}
   return {
     data: snap.data(),
     error: null,

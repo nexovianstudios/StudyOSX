@@ -1,19 +1,48 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
   updateProfile,
+  sendEmailVerification,
+  signOut as firebaseSignOut,
 } from "firebase/auth";
 
 import { auth } from "./firebase";
 
 export async function signUp(name: string, email: string, password: string) {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(userCredential.user, { displayName: name });
-    return { user: userCredential.user, error: null };
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    console.log("✅ Account created");
+
+    await updateProfile(userCredential.user, {
+      displayName: name,
+    });
+    console.log("✅ Profile updated");
+
+    try {
+  await sendEmailVerification(userCredential.user);
+  console.log("📧 Verification email sent");
+} catch (e) {
+  console.error("❌ Verification failed:", e);
+}
+
+    await firebaseSignOut(auth);
+    console.log("👋 Signed out");
+
+    return {
+      user: userCredential.user,
+      error: null,
+    };
   } catch (error) {
-    return { user: null, error: error as Error };
+    console.error("❌ Signup failed:", error);
+
+    return {
+      user: null,
+      error: error as Error,
+    };
   }
 }
 

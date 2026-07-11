@@ -36,10 +36,27 @@ function AppContent() {
   const [route, navigate] = useRoute();
 const { loadCloudProfile } = useStore();
 const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+const [checkingVerification, setCheckingVerification] = useState(true);
 
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    setLoggedIn(!!user);
+    setCheckingVerification(true);
+
+if (!user) {
+  setLoggedIn(false);
+  setCheckingVerification(false);
+  return;
+}
+
+await user.reload();
+
+if (!user.emailVerified) {
+  setLoggedIn(false);
+  setCheckingVerification(false);
+  return;
+}
+
+setLoggedIn(true);
 
     if (user) {
       const profile = await loadUserProfile();
@@ -53,6 +70,7 @@ if (profile) {
 } else {
   console.log("🔥 No cloud profile found");
 }
+setCheckingVerification(false);
     }
   });
 
@@ -60,10 +78,12 @@ if (profile) {
 }, [loadCloudProfile]);
  
 
-  if (loggedIn === null) {
+  if (checkingVerification || loggedIn === null) {
   return (
     <div className="fixed inset-0 bg-base-0 flex items-center justify-center">
-      <div className="text-white text-lg">Checking session...</div>
+      <div className="text-white text-lg">
+        Checking session...
+      </div>
     </div>
   );
 }

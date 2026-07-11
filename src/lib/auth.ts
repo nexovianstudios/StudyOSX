@@ -4,11 +4,16 @@ import {
   updateProfile,
   sendEmailVerification,
   signOut as firebaseSignOut,
+  reload,
 } from "firebase/auth";
 
 import { auth } from "./firebase";
 
-export async function signUp(name: string, email: string, password: string) {
+export async function signUp(
+  name: string,
+  email: string,
+  password: string
+) {
   try {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
@@ -23,11 +28,11 @@ export async function signUp(name: string, email: string, password: string) {
     console.log("✅ Profile updated");
 
     try {
-  await sendEmailVerification(userCredential.user);
-  console.log("📧 Verification email sent");
-} catch (e) {
-  console.error("❌ Verification failed:", e);
-}
+      await sendEmailVerification(userCredential.user);
+      console.log("📧 Verification email sent");
+    } catch (e) {
+      console.error("❌ Verification failed:", e);
+    }
 
     await firebaseSignOut(auth);
     console.log("👋 Signed out");
@@ -48,10 +53,36 @@ export async function signUp(name: string, email: string, password: string) {
 
 export async function signIn(email: string, password: string) {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return { user: userCredential.user, error: null };
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    // Refresh user data from Firebase
+    await reload(userCredential.user);
+
+    // Block unverified users
+    if (!userCredential.user.emailVerified) {
+      await firebaseSignOut(auth);
+
+      return {
+        user: null,
+        error: new Error(
+          "Please verify your email before logging in.\n\nCheck your Spam/Junk folder if you don't see the email."
+        ),
+      };
+    }
+
+    return {
+      user: userCredential.user,
+      error: null,
+    };
   } catch (error) {
-    return { user: null, error: error as Error };
+    return {
+      user: null,
+      error: error as Error,
+    };
   }
 }
 

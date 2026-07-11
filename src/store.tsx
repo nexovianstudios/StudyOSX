@@ -116,22 +116,7 @@ const DEFAULT_STATE: UserState = {
   },
 };
 
-const STORAGE_PREFIX = "studyos-x-state-";
 
-function getStorageKey(uid: string) {
-  return `${STORAGE_PREFIX}${uid}`;
-}
-
-function loadState(): UserState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_STATE;
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed, preferences: { ...DEFAULT_STATE.preferences, ...parsed.preferences } };
-  } catch {
-    return DEFAULT_STATE;
-  }
-}
 
 const XP_PER_LEVEL = 500;
 
@@ -157,23 +142,18 @@ export interface StoreContextType {
 const StoreContext = createContext<StoreContextType | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setStateRaw] = useState<UserState>(loadState);
+  const [state, setStateRaw] = useState<UserState>(DEFAULT_STATE);
   const [cloudReady, setCloudReady] = useState(false);
   
 
 useEffect(() => {
   if (!cloudReady) return;
 
-  async function sync() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      await saveUserProfile(state);
-    } catch (err) {
-      console.error("Cloud sync failed:", err);
-    }
-  }
+  console.log("🔥 Syncing to cloud", state);
 
-  sync();
+  saveUserProfile(state).catch((err) => {
+    console.error("Cloud sync failed:", err);
+  });
 }, [state, cloudReady]);
   // Apply theme to document
   useEffect(() => {
@@ -267,9 +247,8 @@ useEffect(() => {
 }, []);
 
   const resetData = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setStateRaw(DEFAULT_STATE);
-  }, []);
+  setStateRaw(DEFAULT_STATE);
+}, []);
 const setName = useCallback((name: string) => {
   setStateRaw((prev) => ({
     ...prev,
@@ -278,6 +257,7 @@ const setName = useCallback((name: string) => {
 }, []);
 
 const loadCloudProfile = useCallback((profile: Partial<UserState>) => {
+  console.log("🔥 loadCloudProfile called");
   setStateRaw((prev) => ({
     ...prev,
     ...profile,

@@ -44,11 +44,15 @@ useEffect(() => {
     if (user) {
       const profile = await loadUserProfile();
 
-      console.log("Cloud Profile:", profile);
+console.log("🔥 Auth user:", user.uid);
+console.log("🔥 Cloud Profile:", profile);
 
-      if (profile) {
-        loadCloudProfile(profile);
-      }
+if (profile) {
+  console.log("🔥 Loading cloud profile...");
+  loadCloudProfile(profile);
+} else {
+  console.log("🔥 No cloud profile found");
+}
     }
   });
 

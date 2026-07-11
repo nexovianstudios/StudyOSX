@@ -12,16 +12,18 @@ export default function Welcome() {
 
   const handleAuth = async () => {
     if (isLogin) {
-      const { error } = await signIn(email, password);
+  const { error } = await signIn(email, password);
 
-      if (error) {
-        alert(error.message);
-        return;
-      }
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
-      setEmail("");
-      setPassword("");
-    } else {
+  setEmail("");
+  setPassword("");
+
+  window.location.reload(); // <-- ADD THIS
+}else {
       const { error } = await signUp(name, email, password);
 
       if (error) {

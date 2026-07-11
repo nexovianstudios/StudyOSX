@@ -10,6 +10,13 @@ const iconMap = Icons as unknown as Record<string, Icons.LucideIcon>;
 
 export default function AppShell({ route, navigate, children }: { route: Route; navigate: (r: Route) => void; children: ReactNode }) {
   const { state } = useStore();
+  console.log(
+  "🏠",
+  state.name,
+  state.xp,
+  state.notes.length,
+  state.events.length
+);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const xpInLevel = state.xp % XP_PER_LEVEL;

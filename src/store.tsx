@@ -116,7 +116,11 @@ const DEFAULT_STATE: UserState = {
   },
 };
 
-const STORAGE_KEY = 'studyos-x-state-v1';
+const STORAGE_PREFIX = "studyos-x-state-";
+
+function getStorageKey(uid: string) {
+  return `${STORAGE_PREFIX}${uid}`;
+}
 
 function loadState(): UserState {
   try {

@@ -90,6 +90,18 @@ export default function AIAssistant() {
   const [loading, setLoading] = useState(false);
   const [quizRevealed, setQuizRevealed] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastAiXpRef = useRef(0);
+
+const STUDY_TOOLS: Tool[] = [
+  'doubt',
+  'quiz',
+  'explain',
+  'flashcards',
+  'summarize',
+  'plan',
+];
+
+const AI_XP_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 
   // Rolling summary of everything older than the current live context window.
   // Kept in refs (not state) since it's never rendered — it only needs to be
@@ -303,7 +315,19 @@ export default function AIAssistant() {
         }
       }
 
-      addXp(5);
+      const canEarnXp =
+  STUDY_TOOLS.includes(tool) &&
+  currentInput.trim().length >= 12;
+
+const now = Date.now();
+
+if (
+  canEarnXp &&
+  now - lastAiXpRef.current >= AI_XP_COOLDOWN
+) {
+  addXp(5);
+  lastAiXpRef.current = now;
+}
     } catch (err) {
       const message = err instanceof GroqError ? friendlyGroqMessage(err) : friendlyGroqMessage(err);
       setMessages((m) => [...m, { role: 'ai', content: message }]);
@@ -317,17 +341,45 @@ export default function AIAssistant() {
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col gap-6">
-      <SectionTitle title="AI Assistant" subtitle="Your personal study companion" icon={<Icons.Bot size={24} />} />
+      {messages.length === 0 && (
+  <>
+    <SectionTitle
+      title="AI Assistant"
+      subtitle="Your personal study companion"
+      icon={<Icons.Bot size={24} />}
+    />
 
-      <GlassCard className="p-4 flex items-center gap-3">
-        <Icons.Sparkles size={18} className="text-[rgb(var(--accent-soft))] flex-shrink-0" />
-        <p className="text-sm text-secondary-c">
-          Powered by Groq. Ask about any topic, generate quizzes, flashcards, cheat sheets, revision plans, or just chat. Earn 5 XP per interaction.
-        </p>
-      </GlassCard>
+    <GlassCard className="p-4 flex items-center gap-3">
+      <Icons.Sparkles
+        size={18}
+        className="text-[rgb(var(--accent-soft))] flex-shrink-0"
+      />
+      <p className="text-sm text-secondary-c">
+        Powered by Groq. Ask about any topic, generate quizzes,
+        flashcards, cheat sheets, revision plans, or just chat.
+        Earn 5 XP per interaction.
+      </p>
+    </GlassCard>
+  </>
+)}
+
+      {/* Mobile Tool Selector */}
+<div className="md:hidden">
+  <select
+    value={tool}
+    onChange={(e) => setTool(e.target.value as Tool)}
+    className="w-full glass rounded-xl p-3 text-sm bg-base-2 border border-white/10 text-primary-c"
+  >
+    {TOOLS.map((t) => (
+      <option key={t.id} value={t.id}>
+        {t.name}
+      </option>
+    ))}
+  </select>
+</div>
 
       {/* Tool selector */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+      <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-7 gap-3">
         {TOOLS.map((t) => {
           const Icon = iconMap[t.icon] || Icons.Circle;
           return (
@@ -355,7 +407,7 @@ export default function AIAssistant() {
 
       {/* Messages */}
       <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-2">
+        <div className="flex-1 min-h-[200px] overflow-y-auto space-y-4 pr-2">
           {messages.length === 0 ? (
             <EmptyState icon={<Icons.Bot size={48} />} title={`AI ${currentTool.name}`} subtitle="Type your query above and hit Generate" />
           ) : (

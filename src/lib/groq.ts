@@ -18,8 +18,17 @@ export class GroqError extends Error {
   }
 }
 
+export interface ChatHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface AskGroqOptions {
   systemPrompt: string;
+  history?: {
+    role: "user" | "assistant";
+    content: string;
+  }[];
   jsonMode?: boolean;
   temperature?: number;
   retries?: number;
@@ -29,9 +38,18 @@ async function callGroqOnce(prompt: string, opts: AskGroqOptions): Promise<strin
   const body: Record<string, unknown> = {
     model: MODEL,
     messages: [
-      { role: "system", content: opts.systemPrompt },
-      { role: "user", content: prompt },
-    ],
+  {
+    role: "system",
+    content: opts.systemPrompt,
+  },
+
+  ...(opts.history ?? []),
+
+  {
+    role: "user",
+    content: prompt,
+  },
+],
     temperature: opts.temperature ?? 0.6,
   };
 
@@ -108,6 +126,37 @@ export async function askGroqJSON<T>(prompt: string, opts: AskGroqOptions): Prom
   } catch {
     throw new GroqError("Failed to parse JSON response from Groq", "invalid_response");
   }
+}
+
+/**
+ * Compress a chunk of older conversation turns into a short running summary,
+ * optionally folding in a previous summary. Used to keep chat-history token
+ * usage bounded on long conversations without discarding the on-screen
+ * message list or losing earlier context.
+ */
+export async function summarizeConversation(
+  messagesToSummarize: ChatHistoryMessage[],
+  previousSummary?: string
+): Promise<string> {
+  const systemPrompt =
+    "You compress study-assistant conversation history into a short factual summary (max ~120 words). " +
+    "Preserve: the subject/topic being discussed, any concrete requests or tasks the user made, any commitments " +
+    "or plans the assistant proposed, and unresolved threads. Do not add commentary, opinions, or formatting — " +
+    "plain prose only.";
+
+  const transcript = messagesToSummarize
+    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+    .join("\n");
+
+  const prompt = previousSummary
+    ? `Existing summary of earlier conversation:\n${previousSummary}\n\nNewer messages to fold in:\n${transcript}\n\nProduce one updated summary covering everything.`
+    : `Conversation so far:\n${transcript}\n\nSummarize it.`;
+
+  return askGroq(prompt, {
+    systemPrompt,
+    temperature: 0.3,
+    retries: 1,
+  });
 }
 
 /** Friendly, student-facing message for a given error. */

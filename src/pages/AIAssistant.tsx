@@ -2,7 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import * as Icons from 'lucide-react';
 import { useStore } from '../store';
 import { GlassCard, SectionTitle, NeonButton, EmptyState } from '../components/ui';
-import { askGroq, askGroqJSON, GroqError, friendlyGroqMessage } from '../lib/groq';
+import {
+  askGroq,
+  askGroqJSON,
+  summarizeConversation,
+  GroqError,
+  friendlyGroqMessage,
+  type ChatHistoryMessage,
+} from '../lib/groq';
 import {
   DOUBT_PROMPT,
   EXPLAIN_PROMPT,
@@ -68,6 +75,13 @@ const DIFFICULTY_COLOR: Record<QuizQuestion['difficulty'], string> = {
   hard: '#ff3b6b',
 };
 
+// --- Conversation-memory tuning -------------------------------------------------
+// How many of the most recent messages are sent to Groq verbatim as chat history.
+const MAX_CONTEXT_MESSAGES = 12;
+// How far past that window we let the conversation grow before triggering a
+// background summarization pass (avoids summarizing on every single message).
+const SUMMARY_TRIGGER_BUFFER = 6;
+
 export default function AIAssistant() {
   const { addXp } = useStore();
   const [tool, setTool] = useState<Tool>('doubt');
@@ -76,6 +90,13 @@ export default function AIAssistant() {
   const [loading, setLoading] = useState(false);
   const [quizRevealed, setQuizRevealed] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Rolling summary of everything older than the current live context window.
+  // Kept in refs (not state) since it's never rendered — it only needs to be
+  // read/written between async calls without triggering re-renders.
+  const summaryRef = useRef<string>('');
+  const summarizedUpToRef = useRef<number>(0); // index into `messages` already folded into summaryRef
+  const isSummarizingRef = useRef<boolean>(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -94,12 +115,79 @@ export default function AIAssistant() {
     }
   };
 
+  // Build the `history` array Groq should see for the *next* call: the
+  // rolling summary (if any, as a leading assistant-visible note folded into
+  // the first history turn) plus the most recent messages verbatim. This is
+  // everything BEFORE the new user turn — askGroq appends the current prompt
+  // itself.
+  const buildHistory = (allMessages: Msg[]): ChatHistoryMessage[] => {
+    const history: ChatHistoryMessage[] = [];
+
+    if (summaryRef.current) {
+      // The API only accepts 'user' | 'assistant' roles in history, so the
+      // summary is threaded in as an assistant note the model can rely on.
+      history.push({
+        role: 'assistant',
+        content: `[Context from earlier in our conversation: ${summaryRef.current}]`,
+      });
+    }
+
+    const recent = allMessages.slice(-MAX_CONTEXT_MESSAGES);
+    for (const m of recent) {
+      history.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content });
+    }
+
+    return history;
+  };
+
+  // Fire-and-forget: once the conversation has grown well past the live
+  // context window, compress the messages that fell out of that window into
+  // (or on top of) the rolling summary. Keeps token usage bounded without
+  // ever discarding what's shown on screen.
+  const maybeSummarize = (allMessages: Msg[]) => {
+    if (isSummarizingRef.current) return;
+
+    const unsummarizedCount = allMessages.length - summarizedUpToRef.current;
+    if (unsummarizedCount <= MAX_CONTEXT_MESSAGES + SUMMARY_TRIGGER_BUFFER) return;
+
+    const cutoff = allMessages.length - MAX_CONTEXT_MESSAGES; // keep this many newest messages live
+    const chunk = allMessages.slice(summarizedUpToRef.current, cutoff);
+    if (chunk.length === 0) return;
+
+    isSummarizingRef.current = true;
+
+    const chunkForSummary: ChatHistoryMessage[] = chunk.map((m) => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.content,
+    }));
+
+    summarizeConversation(chunkForSummary, summaryRef.current || undefined)
+      .then((newSummary) => {
+        summaryRef.current = newSummary.trim();
+        summarizedUpToRef.current = cutoff;
+      })
+      .catch((err) => {
+        // Summarization is best-effort; on failure we just keep the larger
+        // live window next time instead of breaking the conversation.
+        console.error('Conversation summarization failed:', err);
+      })
+      .finally(() => {
+        isSummarizingRef.current = false;
+      });
+  };
+
   const run = async () => {
     if (loading) return; // prevent duplicate/rapid submissions
     if (!input.trim()) return;
 
     const currentInput = input.trim();
-    setMessages((m) => [...m, { role: 'user', content: currentInput }]);
+
+    // History is everything said so far (across all tools), built *before*
+    // the new user turn is appended.
+    const history = buildHistory(messages);
+
+    const userMsg: Msg = { role: 'user', content: currentInput };
+    setMessages((m) => [...m, userMsg]);
     setInput('');
     setLoading(true);
 
@@ -108,62 +196,109 @@ export default function AIAssistant() {
         case 'quiz': {
           const result = await askGroqJSON<{ questions: QuizQuestion[] }>(currentInput, {
             systemPrompt: QUIZ_SYSTEM_PROMPT,
+            history,
             temperature: 0.7,
           });
-          setMessages((m) => [
-            ...m,
-            { role: 'ai', content: `Here's a quiz on **${currentInput}**:`, data: { kind: 'quiz', items: result.questions } },
-          ]);
+          setMessages((m) => {
+            const next: Msg[] = [
+              ...m,
+              { role: 'ai', content: `Here's a quiz on **${currentInput}**:`, data: { kind: 'quiz', items: result.questions } },
+            ];
+            maybeSummarize(next);
+            return next;
+          });
           break;
         }
 
         case 'flashcards': {
           const result = await askGroqJSON<{ cards: Flashcard[] }>(currentInput, {
             systemPrompt: FLASHCARDS_SYSTEM_PROMPT,
+            history,
             temperature: 0.6,
           });
-          setMessages((m) => [
-            ...m,
-            { role: 'ai', content: `Flashcards for **${currentInput}**:`, data: { kind: 'flashcards', items: result.cards } },
-          ]);
+          setMessages((m) => {
+            const next: Msg[] = [
+              ...m,
+              { role: 'ai', content: `Flashcards for **${currentInput}**:`, data: { kind: 'flashcards', items: result.cards } },
+            ];
+            maybeSummarize(next);
+            return next;
+          });
           break;
         }
 
         case 'plan': {
           const days = Math.max(1, Math.min(60, parseInt(currentInput, 10) || 7));
-          const result = await askGroqJSON<{ plan: PlanItem[] }>(`Create a ${days}-day revision plan.`, {
+          const result = await askGroqJSON<{ plan: PlanItem[] }>(currentInput, {
             systemPrompt: PLAN_SYSTEM_PROMPT,
+            history,
             temperature: 0.6,
           });
-          setMessages((m) => [
-            ...m,
-            { role: 'ai', content: `Here's your ${days}-day revision plan:`, data: { kind: 'plan', items: result.plan } },
-          ]);
+          setMessages((m) => {
+            const next: Msg[] = [
+              ...m,
+              { role: 'ai', content: `Here's your ${days}-day revision plan:`, data: { kind: 'plan', items: result.plan } },
+            ];
+            maybeSummarize(next);
+            return next;
+          });
           break;
         }
 
         case 'summarize': {
-          const content = await askGroq(currentInput, { systemPrompt: CHEATSHEET_PROMPT, temperature: 0.5 });
-          setMessages((m) => [...m, { role: 'ai', content }]);
+          const content = await askGroq(currentInput, {
+            systemPrompt: CHEATSHEET_PROMPT,
+            history,
+            temperature: 0.5,
+          });
+          setMessages((m) => {
+            const next: Msg[] = [...m, { role: 'ai', content }];
+            maybeSummarize(next);
+            return next;
+          });
           break;
         }
 
         case 'explain': {
-          const content = await askGroq(currentInput, { systemPrompt: EXPLAIN_PROMPT, temperature: 0.6 });
-          setMessages((m) => [...m, { role: 'ai', content }]);
+          const content = await askGroq(currentInput, {
+            systemPrompt: EXPLAIN_PROMPT,
+            history,
+            temperature: 0.6,
+          });
+          setMessages((m) => {
+            const next: Msg[] = [...m, { role: 'ai', content }];
+            maybeSummarize(next);
+            return next;
+          });
           break;
         }
 
         case 'funchat': {
-          const content = await askGroq(currentInput, { systemPrompt: FUNCHAT_PROMPT, temperature: 0.8 });
-          setMessages((m) => [...m, { role: 'ai', content }]);
+          const content = await askGroq(currentInput, {
+            systemPrompt: FUNCHAT_PROMPT,
+            history,
+            temperature: 0.8,
+          });
+          setMessages((m) => {
+            const next: Msg[] = [...m, { role: 'ai', content }];
+            maybeSummarize(next);
+            return next;
+          });
           break;
         }
 
         case 'doubt':
         default: {
-          const content = await askGroq(currentInput, { systemPrompt: DOUBT_PROMPT, temperature: 0.6 });
-          setMessages((m) => [...m, { role: 'ai', content }]);
+          const content = await askGroq(currentInput, {
+            systemPrompt: DOUBT_PROMPT,
+            history,
+            temperature: 0.6,
+          });
+          setMessages((m) => {
+            const next: Msg[] = [...m, { role: 'ai', content }];
+            maybeSummarize(next);
+            return next;
+          });
           break;
         }
       }
@@ -199,8 +334,9 @@ export default function AIAssistant() {
             <button
               key={t.id}
               onClick={() => {
+                // Switching tools no longer clears the conversation — memory
+                // is shared across all tools for the lifetime of the page.
                 setTool(t.id);
-                setMessages([]);
               }}
               className={`glass card-hover rounded-xl p-4 text-center transition-all ${tool === t.id ? 'neon-border' : ''}`}
             >

@@ -32,9 +32,28 @@ export function StatPill({ label, value, icon, accent }: { label: string; value:
   );
 }
 
-export function NeonButton({ children, onClick, className = '', type = 'button' }: { children: ReactNode; onClick?: () => void; className?: string; type?: 'button' | 'submit' }) {
+export function NeonButton({
+  children,
+  onClick,
+  className = "",
+  type = "button",
+  disabled = false,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  className?: string;
+  type?: "button" | "submit";
+  disabled?: boolean;
+}) {
   return (
-    <button type={type} onClick={onClick} className={`neon-btn rounded-xl px-5 py-2.5 font-medium text-sm flex items-center gap-2 justify-center ${className}`}>
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`neon-btn rounded-xl px-5 py-2.5 font-medium text-sm flex items-center gap-2 justify-center ${
+        disabled ? "opacity-50 cursor-not-allowed" : ""
+      } ${className}`}
+    >
       {children}
     </button>
   );

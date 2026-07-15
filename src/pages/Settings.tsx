@@ -160,8 +160,14 @@ export default function Settings() {
                     setEmail('');
                     setPassword('');
                     alert('Account created successfully!');
-                  } catch (err: any) {
-                    alert(err?.message || 'Sign up failed');
+                  } catch (err: unknown) {
+                    const errorMessage =
+                      err instanceof Error
+                        ? err.message
+                        : typeof err === 'object' && err !== null && 'message' in err
+                        ? String((err as { message?: unknown }).message)
+                        : String(err);
+                    alert(errorMessage || 'Sign up failed');
                   }
                 }}
               >
@@ -176,8 +182,14 @@ export default function Settings() {
                     setEmail('');
                     setPassword('');
                     alert('Login successful!');
-                  } catch (err: any) {
-                    alert(err?.message || 'Login failed');
+                  } catch (err: unknown) {
+                    const errorMessage =
+                      err instanceof Error
+                        ? err.message
+                        : typeof err === 'object' && err !== null && 'message' in err
+                        ? String((err as { message?: unknown }).message)
+                        : String(err);
+                    alert(errorMessage || 'Login failed');
                   }
                 }}
               >
@@ -190,8 +202,14 @@ export default function Settings() {
                   try {
                     await signOut();
                     alert('Logged out successfully!');
-                  } catch (err: any) {
-                    alert(err?.message || 'Logout failed');
+                  } catch (err: unknown) {
+                    const errorMessage =
+                      err instanceof Error
+                        ? err.message
+                        : typeof err === 'object' && err !== null && 'message' in err
+                        ? String((err as { message?: unknown }).message)
+                        : String(err);
+                    alert(errorMessage || 'Logout failed');
                   }
                 }}
               >

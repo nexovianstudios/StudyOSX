@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Icons from 'lucide-react';
 import { useStore } from '../store';
 import { GlassCard, SectionTitle, NeonButton, EmptyState } from '../components/ui';
@@ -33,36 +33,7 @@ export default function FocusZone() {
 
   const totalForMode = mode === 'pomodoro' ? (isBreak ? breakMin : workMin) * 60 : mode === 'countdown' ? countdownMin * 60 : 0;
 
-  useEffect(() => {
-    if (mode === 'pomodoro') setSeconds((isBreak ? breakMin : workMin) * 60);
-    else if (mode === 'countdown') setSeconds(countdownMin * 60);
-    else setStopwatchSec(0);
-    setIsRunning(false);
-    setIsBreak(false);
-  }, [mode, workMin, breakMin, countdownMin]);
-
-  useEffect(() => {
-    if (!isRunning) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    intervalRef.current = setInterval(() => {
-      if (mode === 'stopwatch') {
-        setStopwatchSec((s) => s + 1);
-      } else {
-        setSeconds((s) => {
-          if (s <= 1) {
-            handleComplete();
-            return 0;
-          }
-          return s - 1;
-        });
-      }
-    }, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, mode]);
-
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
     setIsRunning(false);
     if (mode === 'pomodoro' && !isBreak) {
       const duration = workMin;
@@ -85,7 +56,36 @@ export default function FocusZone() {
       addXp(duration * 2);
       unlockAchievement('first-session');
     }
-  };
+  }, [mode, isBreak, workMin, breakMin, countdownMin, subject, studyMode, recordSession, addXp, unlockAchievement, state.preferences.notifications]);
+
+  useEffect(() => {
+    if (mode === 'pomodoro') setSeconds((isBreak ? breakMin : workMin) * 60);
+    else if (mode === 'countdown') setSeconds(countdownMin * 60);
+    else setStopwatchSec(0);
+    setIsRunning(false);
+    setIsBreak(false);
+  }, [mode, workMin, breakMin, countdownMin, isBreak]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    intervalRef.current = setInterval(() => {
+      if (mode === 'stopwatch') {
+        setStopwatchSec((s) => s + 1);
+      } else {
+        setSeconds((s) => {
+          if (s <= 1) {
+            handleComplete();
+            return 0;
+          }
+          return s - 1;
+        });
+      }
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning, mode, handleComplete]);
 
   const stop = () => {
     if (mode === 'stopwatch' && stopwatchSec > 60) {

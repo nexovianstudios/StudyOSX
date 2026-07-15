@@ -4,24 +4,64 @@ import { useStore } from '../store';
 import { CHEAT_SHEETS, type CheatSheet } from '../data/cheatsheets';
 import { GlassCard, SectionTitle, EmptyState } from '../components/ui';
 
-const SUBJECTS = ['Mathematics', 'Science', 'Social Science', 'English'] as const;
+const SUBJECTS = [
+  'Mathematics',
+  'Science',
+  'Social Science',
+  'English',
+  'Malayalam',
+  'Hindi'
+] as const;
+const SUBJECT_COLORS: Record<string, string> = {
+  Mathematics: 'text-sky-400',
+  Science: 'text-emerald-400',
+  'Social Science': 'text-amber-400',
+  English: 'text-violet-400',
+  Malayalam: 'text-pink-400',
+  Hindi: 'text-orange-400',
+};
 
 export default function CheatSheets() {
   const { state, toggleBookmark } = useStore();
-  const [subjectFilter, setSubjectFilter] = useState<string>('all');
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
-    return CHEAT_SHEETS.filter((c) => {
-      if (subjectFilter !== 'all' && c.subject !== subjectFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return c.chapter.toLowerCase().includes(q) || c.formulas.some((f) => f.toLowerCase().includes(q)) || c.tips.some((t) => t.toLowerCase().includes(q));
-      }
-      return true;
-    });
-  }, [subjectFilter, search]);
+  return CHEAT_SHEETS.filter((c) => {
+    if (
+      selectedSubjects.length > 0 &&
+      !selectedSubjects.includes(c.subject)
+    ) {
+      return false;
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        c.chapter.toLowerCase().includes(q) ||
+        c.subject.toLowerCase().includes(q) ||
+        c.formulas.some(f => f.toLowerCase().includes(q)) ||
+        c.shortcuts.some(s => s.toLowerCase().includes(q)) ||
+        c.tricks.some(t => t.toLowerCase().includes(q)) ||
+        c.faqs.some(f =>
+          f.q.toLowerCase().includes(q) ||
+          f.a.toLowerCase().includes(q)
+        ) ||
+        c.tips.some(t => t.toLowerCase().includes(q))
+      );
+    }
+
+    return true;
+  });
+}, [selectedSubjects, search]);
+const toggleSubject = (subject: string) => {
+  setSelectedSubjects(prev =>
+    prev.includes(subject)
+      ? prev.filter(s => s !== subject)
+      : [...prev, subject]
+  );
+};
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -54,6 +94,9 @@ export default function CheatSheets() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <SectionTitle title="Cheat Sheet Library" subtitle="Chapter-wise quick reference" icon={<Icons.BookMarked size={24} />} />
+        <div className="text-xs text-muted-c">
+  {filtered.length} / {CHEAT_SHEETS.length} Chapters
+</div>
         <div className="flex gap-2">
           <button onClick={expandAll} className="text-xs neon-btn rounded-lg px-3 py-1.5">Expand All</button>
           <button onClick={collapseAll} className="text-xs bg-base-2 border border-white/10 rounded-lg px-3 py-1.5 text-secondary-c">Collapse All</button>
@@ -66,9 +109,9 @@ export default function CheatSheets() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search chapters, formulas, tips..." className="w-full bg-base-2 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-primary-c placeholder:text-muted-c focus:outline-none focus:border-[rgba(var(--accent),0.5)]" />
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setSubjectFilter('all')} className={`rounded-lg px-3 py-2 text-xs ${subjectFilter === 'all' ? 'neon-btn' : 'bg-base-2 border border-white/10 text-secondary-c'}`}>All</button>
+          <button onClick={() => setSelectedSubjects([])} className={`rounded-lg px-3 py-2 text-xs ${selectedSubjects.length === 0 ? 'neon-btn' : 'bg-base-2 border border-white/10 text-secondary-c'}`}>All</button>
           {SUBJECTS.map((s) => (
-            <button key={s} onClick={() => setSubjectFilter(s)} className={`rounded-lg px-3 py-2 text-xs ${subjectFilter === s ? 'neon-btn' : 'bg-base-2 border border-white/10 text-secondary-c'}`}>{s}</button>
+            <button key={s} onClick={() => toggleSubject(s)} className={`rounded-lg px-3 py-2 text-xs ${selectedSubjects.includes(s) ? 'neon-btn' : 'bg-base-2 border border-white/10 text-secondary-c'}`}>{s}</button>
           ))}
         </div>
       </GlassCard>
@@ -85,7 +128,23 @@ export default function CheatSheets() {
                 <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => toggle(sheet.id)}>
                   <Icons.ChevronRight size={18} className={`text-[rgb(var(--accent-soft))] transition-transform ${isOpen ? 'rotate-90' : ''}`} />
                   <div className="flex-1">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-c">{sheet.subject}</div>
+                    <span
+  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+    sheet.subject === 'Mathematics'
+      ? 'bg-sky-500/15 text-sky-400'
+      : sheet.subject === 'Science'
+      ? 'bg-emerald-500/15 text-emerald-400'
+      : sheet.subject === 'Social Science'
+      ? 'bg-amber-500/15 text-amber-400'
+      : sheet.subject === 'English'
+      ? 'bg-violet-500/15 text-violet-400'
+      : sheet.subject === 'Malayalam'
+      ? 'bg-pink-500/15 text-pink-400'
+      : 'bg-orange-500/15 text-orange-400'
+  }`}
+>
+  {sheet.subject}
+</span>
                     <div className="font-semibold text-primary-c">{sheet.chapter}</div>
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); toggleBookmark(sheet.id); }} className="text-muted-c hover:text-[rgb(var(--accent-soft))] transition-colors p-1">

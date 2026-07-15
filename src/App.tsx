@@ -61,16 +61,10 @@ setLoggedIn(true);
     if (user) {
       const profile = await loadUserProfile();
 
-console.log("🔥 Auth user:", user.uid);
-console.log("🔥 Cloud Profile:", profile);
-
-if (profile) {
-  console.log("🔥 Loading cloud profile...");
-  loadCloudProfile(profile);
-} else {
-  console.log("🔥 No cloud profile found");
-}
-setCheckingVerification(false);
+      if (profile) {
+        loadCloudProfile(profile);
+      }
+      setCheckingVerification(false);
     }
   });
 

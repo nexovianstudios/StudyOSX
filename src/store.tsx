@@ -149,8 +149,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 useEffect(() => {
   if (!cloudReady) return;
 
-  console.log("🔥 Syncing to cloud", state);
-
   saveUserProfile(state).catch((err) => {
     console.error("Cloud sync failed:", err);
   });
@@ -257,7 +255,6 @@ const setName = useCallback((name: string) => {
 }, []);
 
 const loadCloudProfile = useCallback((profile: Partial<UserState>) => {
-  console.log("🔥 loadCloudProfile called");
   setStateRaw((prev) => ({
     ...prev,
     ...profile,

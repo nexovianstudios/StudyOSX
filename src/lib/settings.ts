@@ -40,8 +40,6 @@ export async function getSettings() {
   const snap = await getDoc(docRef);
 
   if (!snap.exists()) {
-  console.log("🆕 Creating new Firestore profile...");
-
   await setDoc(docRef, DEFAULT_PROFILE);
 
   return {
@@ -59,12 +57,8 @@ export async function saveSettings(settings: Record<string, unknown>) {
   const user = auth.currentUser;
 
   if (!user) {
-    console.log("❌ No logged in user");
     return;
   }
-
-  console.log("✅ Writing to Firestore for:", user.uid);
-  console.log(settings);
 
   const docRef = doc(db, "settings", user.uid);
 
@@ -74,8 +68,6 @@ export async function saveSettings(settings: Record<string, unknown>) {
       settings,
       { merge: true }
     );
-
-    console.log("✅ Firestore write successful");
   } catch (e) {
     console.error("🔥 Firestore write failed:", e);
   }

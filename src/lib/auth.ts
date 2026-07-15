@@ -20,22 +20,17 @@ export async function signUp(
       email,
       password
     );
-    console.log("✅ Account created");
-
     await updateProfile(userCredential.user, {
       displayName: name,
     });
-    console.log("✅ Profile updated");
 
     try {
       await sendEmailVerification(userCredential.user);
-      console.log("📧 Verification email sent");
     } catch (e) {
       console.error("❌ Verification failed:", e);
     }
 
     await firebaseSignOut(auth);
-    console.log("👋 Signed out");
 
     return {
       user: userCredential.user,

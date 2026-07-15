@@ -64,7 +64,7 @@ export default function CalendarCenter() {
 
   // Custom day button: shows the date number + colored dot indicators for that day's events
   function EventDayButton(props: DayButtonProps) {
-    const { day, modifiers, className, ...rest } = props;
+    const { day, modifiers, ...rest } = props;
     const dateStr = toDateStr(day.date);
     const events = eventsForDate(dateStr);
 

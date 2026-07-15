@@ -12,14 +12,6 @@ const SUBJECTS = [
   'Malayalam',
   'Hindi'
 ] as const;
-const SUBJECT_COLORS: Record<string, string> = {
-  Mathematics: 'text-sky-400',
-  Science: 'text-emerald-400',
-  'Social Science': 'text-amber-400',
-  English: 'text-violet-400',
-  Malayalam: 'text-pink-400',
-  Hindi: 'text-orange-400',
-};
 
 export default function CheatSheets() {
   const { state, toggleBookmark } = useStore();

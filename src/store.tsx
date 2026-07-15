@@ -1,5 +1,4 @@
 import {
-  loadUserProfile,
   saveUserProfile,
 } from "./lib/cloud";
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
